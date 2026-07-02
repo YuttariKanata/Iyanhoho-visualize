@@ -3,145 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔮 代数パズル 経路可視化ツール</title>
+    <title>代数パズル 経路可視化</title>
     <style>
         :root {
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-            --primary-color: #4a90e2;
-            --text-color: #333333;
+            --bg-color: #f7f7f7;
+            --text-color: #222222;
+            --border-color: #cccccc;
+            --grid-color: #eaeaea;
         }
         
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Courier New', Courier, monospace, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
 
         h1 {
+            font-size: 20px;
+            font-weight: normal;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
             margin-bottom: 20px;
-            color: #2c3e50;
         }
 
         .container {
             display: flex;
-            width: 100%;
-            max-width: 1200px;
-            gap: 30px;
+            gap: 20px;
         }
 
         .input-area {
-            flex: 1;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            width: 300px;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            z-index: 10;
         }
 
         textarea {
             width: 100%;
-            height: 400px;
-            padding: 12px;
+            height: 450px;
+            padding: 10px;
             box-sizing: border-box;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: #ffffff;
             font-family: monospace;
-            font-size: 16px;
+            font-size: 14px;
             resize: none;
             outline: none;
-            transition: border-color 0.3s;
         }
 
-        textarea:focus {
-            border-color: var(--primary-color);
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #ffffff;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .visual-container {
+            flex: 1;
+            position: relative;
+            border: 1px solid var(--border-color);
+            background-color: #ffffff;
+            /*background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 20px 20px;*/
+            min-height: 500px;
+            overflow-x: auto;
+        }
+
+        #svgOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
         }
 
         .visual-area {
-            flex: 1.5;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            min-height: 500px;
+            position: relative;
+            z-index: 2;
+            padding: 30px;
+        }
+
+        .step-row {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            overflow-y: auto;
+            height: 40px;
+            position: relative;
         }
 
-        /* ダイアグラムのノード（箱）スタイル */
-        .step-node {
-            background: linear-gradient(135deg, #6fd6ff, #4a90e2);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
-            position: relative;
-            animation: fadeIn 0.4s ease forwards;
+        .string-label {
+            font-size: 16px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            font-family: monospace;
+            /* JSで動的に幅（width）を上書きします */
+        }
+
+        .separator {
+            width: 30px;
+            color: #888888;
+            text-align: center;
+        }
+
+        .dots-container {
+            display: flex;
+            gap: 15px;
+            padding-left: 10px;
+        }
+
+        .dot-wrapper {
+            width: 12px;
+            height: 12px;
             display: inline-block;
-        }
-
-        /* 矢印（コネクタ） */
-        .arrow {
-            width: 2px;
-            height: 30px;
-            background-color: #cbd5e1;
             position: relative;
-            margin: 5px 0;
         }
 
-        .arrow::after {
-            content: '';
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
             position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 8px solid #cbd5e1;
+            top: 0;
+            left: 0;
+            transition: background-color 0.2s;
         }
 
-        /* 文字数変化のバッジ */
-        .length-badge {
+        .len-text {
             font-size: 11px;
-            background: rgba(0,0,0,0.2);
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            color: #888888;
+            margin-left: 20px;
         }
     </style>
 </head>
 <body>
 
-    <h1>🔮 代数パズル 変形経路可視化システム</h1>
+    <h1>Algebraic Puzzle Path Visualizer</h1>
 
     <div class="container">
         <div class="input-area">
-            <h3>1. 経路テキストを貼り付け</h3>
-            <textarea id="pathInput" placeholder="ここにJuliaの出力や経路を貼り付けてください&#10;&#10;テポトテポポ&#10;テポトポテ&#10;テポポトトテ&#10;ポテトトテ&#10;ポトテテ&#10;ポテト"></textarea>
+            <h3>[ Input Path ]</h3>
+            <textarea id="pathInput" placeholder="abc&#10;acbb&#10;acbbb&#10;caabbb&#10;cabab">abc
+acbb
+acbbb
+caabbb
+cabab</textarea>
+            
+            <div class="controls">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="toggleHighlight" checked> 変換箇所の四角（ハイライト）を表示
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="toggleColor" checked> グラフ全体に色を付ける
+                </label>
+            </div>
         </div>
 
-        <div class="visual-area" id="visualArea">
-            <h3>2. ダイアグラム表示</h3>
-            <div id="diagramFlow" style="width: 100%; text-align: center; padding-top: 20px;">
-                <p style="color: #94a3b8;">左側にデータを入力すると、ここにフローが生成されます。</p>
+        <div class="visual-container">
+            <svg id="svgOverlay"></svg>
+            <div class="visual-area" id="visualArea">
+                <div id="diagramFlow"></div>
             </div>
         </div>
     </div>
@@ -149,48 +187,267 @@
     <script>
         const pathInput = document.getElementById('pathInput');
         const diagramFlow = document.getElementById('diagramFlow');
+        const svgOverlay = document.getElementById('svgOverlay');
+        const toggleHighlight = document.getElementById('toggleHighlight');
+        const toggleColor = document.getElementById('toggleColor');
+
+        const colorPalette = [
+            '#a62c1d', '#3b5fa6', '#f7d354', '#2d8a4e', 
+            '#8e44ad', '#d35400', '#16a085', '#2c3e50'
+        ];
+
+        // ユーザー様作成の完全クリーンな対応関係マップ生成ロジック
+        function findExactCharacterLinks(s1, s2) {
+            let u1 = s1.split('');
+            let u2 = s2.split('');
+            let links = []; 
+
+            let foundIdx = -1;
+            let ruleType = ""; 
+            let coreWidthFrom = 0;
+            let coreWidthTo = 0;
+
+            // 1. 正方向ルール (2文字 -> 3文字) の特定
+            for (let i = 0; i <= u1.length - 2; i++) {
+                let x = u1[i], y = u1[i+1];
+                if (u1.slice(0, i).concat([y, x, x]).concat(u1.slice(i + 2)).join('') === s2) {
+                    foundIdx = i; ruleType = "xy->yxx"; break;
+                }
+                if (x === y && u1.slice(0, i).concat([x, x, x]).concat(u1.slice(i + 2)).join('') === s2) {
+                    foundIdx = i; ruleType = "xx->xxx"; break;
+                }
+            }
+
+            // 2. 逆方向ルール (3文字 -> 2文字) の特定
+            if (foundIdx === -1) {
+                for (let i = 0; i <= u1.length - 3; i++) {
+                    let first = u1[i], second = u1[i+1], third = u1[i+2];
+                    if (second === third) {
+                        if (u1.slice(0, i).concat([second, first]).concat(u1.slice(i + 3)).join('') === s2) {
+                            foundIdx = i; ruleType = "yxx->xy"; break;
+                        }
+
+                    }
+                    if (first === second && second === third) {
+                        if (u1.slice(0, i).concat([first, first]).concat(u1.slice(i + 3)).join('') === s2) {
+                            foundIdx = i; ruleType = "xxx->xx"; break;
+                        }
+                    }
+                }
+            }
+
+            if (foundIdx !== -1) {
+                for (let k = 0; k < foundIdx; k++) {
+                    links.push({ from: k, to: [k] });
+                }
+
+                if (ruleType === "xy->yxx") {
+                    links.push({ from: foundIdx, to: [foundIdx + 1, foundIdx + 2] });
+                    links.push({ from: foundIdx + 1, to: [foundIdx] });
+                    coreWidthFrom = 2; coreWidthTo = 3;
+                }
+                else if (ruleType === "xx->xxx") {
+                    links.push({ from: foundIdx, to: [foundIdx] });
+                    links.push({ from: foundIdx + 1, to: [foundIdx + 1, foundIdx + 2] });
+                    coreWidthFrom = 2; coreWidthTo = 3;
+                } 
+                else if (ruleType === "yxx->xy") {
+                    links.push({ from: foundIdx, to: [foundIdx + 1] });
+                    links.push({ from: foundIdx + 1, to: [foundIdx] });
+                    links.push({ from: foundIdx + 2, to: [foundIdx] });
+                    coreWidthFrom = 3; coreWidthTo = 2;
+                }
+                else if (ruleType === "xxx->xx") {
+                    links.push({ from: foundIdx, to: [foundIdx + 1] });
+                    links.push({ from: foundIdx + 1, to: [foundIdx] });
+                    links.push({ from: foundIdx + 2, to: [foundIdx] });
+                    coreWidthFrom = 3; coreWidthTo = 2;
+                }
+
+                let lenFrom = (ruleType.includes("->yxx") || ruleType.includes("->xxx")) ? 2 : 3;
+                let lenTo = lenFrom === 2 ? 3 : 2;
+                let rem = u1.length - (foundIdx + lenFrom);
+                for (let k = 0; k < rem; k++) {
+                    links.push({ from: foundIdx + lenFrom + k, to: [foundIdx + lenTo + k] });
+                }
+            } else {
+                let k = 0;
+                while (k < u1.length && k < u2.length) {
+                    links.push({ from: k, to: [k] });
+                    k++;
+                }
+            }
+            return { links, foundIdx, coreWidthFrom, coreWidthTo };
+        }
 
         function updateDiagram() {
             const text = pathInput.value.trim();
             if (!text) {
-                diagramFlow.innerHTML = '<p style="color: #94a3b8;">左側にデータを入力すると、ここにフローが生成されます。</p>';
+                diagramFlow.innerHTML = '<span style="color: #888; padding: 30px; display:block;">( No Data )</span>';
+                svgOverlay.innerHTML = '';
                 return;
             }
 
-            // 改行で分割し、空行を除外
             const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
             
-            diagramFlow.innerHTML = ''; // クリア
-
-            lines.forEach((line, index) => {
-                // 1. ノード（文字列の箱）を作成
-                const node = document.createElement('div');
-                node.className = 'step-node';
-                
-                // 文字列部分
-                const textSpan = document.createElement('span');
-                textSpan.textContent = line;
-                node.appendChild(textSpan);
-
-                // 文字数バッジ
-                const badge = document.createElement('span');
-                badge.className = 'length-badge';
-                badge.textContent = `${line.length}文字`;
-                node.appendChild(badge);
-
-                diagramFlow.appendChild(node);
-
-                // 2. 最後の行でなければ、次のノードへの矢印を追加
-                if (index < lines.length - 1) {
-                    const arrow = document.createElement('div');
-                    arrow.className = 'arrow';
-                    diagramFlow.appendChild(arrow);
-                }
+            // 🛠️ 改善1：最大文字数（半角幅換算）を取得して動的にラベル幅を決定する
+            let maxCharLength = 0;
+            lines.forEach(line => {
+                if (line.length > maxCharLength) maxCharLength = line.length;
             });
+            // 1文字あたり約10.5px＋余裕を持たせるためのベース幅
+            const dynamicLabelWidth = Math.max(100, maxCharLength * 17 + 20);
+
+            const firstLine = lines[0];
+            const uniqueChars = [];
+            for (let char of firstLine) {
+                if (!uniqueChars.includes(char)) uniqueChars.push(char);
+            }
+
+            const charColorMap = {};
+            uniqueChars.forEach((char, idx) => {
+                charColorMap[char] = colorPalette[idx % colorPalette.length];
+            });
+
+            diagramFlow.innerHTML = ''; 
+
+            lines.forEach((line) => {
+                const row = document.createElement('div');
+                row.className = 'step-row';
+
+                const label = document.createElement('div');
+                label.className = 'string-label';
+                label.style.width = `${dynamicLabelWidth}px`; // 動的幅を適用
+                label.textContent = line;
+                row.appendChild(label);
+
+                const sep = document.createElement('div');
+                sep.className = 'separator';
+                sep.textContent = '–';
+                row.appendChild(sep);
+
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'dots-container';
+
+                for (let char of line) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'dot-wrapper';
+
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    // 🛠️ 改善3：モノクロトグルがオフならすべて同一のグレー、オンなら固有色
+                    dot.style.backgroundColor = toggleColor.checked ? (charColorMap[char] || '#888888') : '#555555';
+
+                    wrapper.appendChild(dot);
+                    dotsContainer.appendChild(wrapper);
+                }
+                row.appendChild(dotsContainer);
+
+                const lenText = document.createElement('span');
+                lenText.className = 'len-text';
+                lenText.textContent = `(${line.length})`;
+                row.appendChild(lenText);
+
+                diagramFlow.appendChild(row);
+            });
+
+            setTimeout(drawTrackingLinesSVG, 50);
         }
 
-        // 入力エリアが書き換えられたらリアルタイムに発火
+        function drawTrackingLinesSVG() {
+            svgOverlay.innerHTML = ''; 
+            
+            const container = svgOverlay.parentElement;
+            const containerRect = container.getBoundingClientRect();
+
+            const rows = document.querySelectorAll('.step-row');
+            if (rows.length < 2) return;
+
+            const layers = [];
+            rows.forEach((row) => {
+                const dots = row.querySelectorAll('.dot');
+                const layerDots = [];
+                dots.forEach((dot) => {
+                    const rect = dot.getBoundingClientRect();
+                    layerDots.push({
+                        x: rect.left - containerRect.left + (rect.width / 2),
+                        y: rect.top - containerRect.top + (rect.height / 2),
+                        color: dot.style.backgroundColor
+                    });
+                });
+                layers.push(layerDots);
+            });
+
+            const text = pathInput.value.trim();
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            for (let l = 0; l < lines.length - 1; l++) {
+                const result = findExactCharacterLinks(lines[l], lines[l+1]);
+                const exactLinks = result.links;
+                const currDots = layers[l];
+                const nextDots = layers[l+1];
+
+                // 🛠️ 改善2：薄紫のハイライトボックスを描画する
+                if (toggleHighlight.checked && result.foundIdx !== -1) {
+                    const startIdx = result.foundIdx;
+                    const endIdxFrom = startIdx + result.coreWidthFrom - 1;
+                    const endIdxTo = startIdx + result.coreWidthTo - 1;
+
+                    // 変化に関わるノードの座標からバウンディングボックスを算出
+                    const pTopLeft = currDots[startIdx];
+                    const pTopRight = currDots[endIdxFrom];
+                    const pBotLeft = nextDots[startIdx];
+                    const pBotRight = nextDots[endIdxTo];
+
+                    if (pTopLeft && pTopRight && pBotLeft && pBotRight) {
+                        const minX = Math.min(pTopLeft.x, pBotLeft.x) - 14;
+                        const maxX = Math.max(pTopRight.x, pBotRight.x) + 14;
+                        const minY = pTopLeft.y - 14;
+                        const maxY = pBotLeft.y + 14;
+
+                        const rectEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                        rectEl.setAttribute('x', minX);
+                        rectEl.setAttribute('y', minY);
+                        rectEl.setAttribute('width', maxX - minX);
+                        rectEl.setAttribute('height', maxY - minY);
+                        rectEl.setAttribute('fill', 'rgba(142, 68, 173, 0.00)'); // 薄紫の塗り
+                        rectEl.setAttribute('stroke', 'rgba(211, 208, 242, 1)'); // 薄紫の枠線
+                        rectEl.setAttribute('stroke-width', '1.5');
+                        rectEl.setAttribute('rx', '4'); // 角を少し丸める
+                        svgOverlay.appendChild(rectEl);
+                    }
+                }
+
+                // 線の描画
+                exactLinks.forEach(link => {
+                    const p1 = currDots[link.from];
+                    if (!p1) return;
+
+                    link.to.forEach(tIdx => {
+                        const p2 = nextDots[tIdx];
+                        if (!p2) return;
+
+                        const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        lineEl.setAttribute('x1', p1.x);
+                        lineEl.setAttribute('y1', p1.y);
+                        lineEl.setAttribute('x2', p2.x);
+                        lineEl.setAttribute('y2', p2.y);
+                        
+                        // 🛠️ 改善3：カラートグルに連動
+                        lineEl.setAttribute('stroke', toggleColor.checked ? p1.color : '#555555');
+                        lineEl.setAttribute('stroke-width', '2');
+                        
+                        svgOverlay.appendChild(lineEl);
+                    });
+                });
+            }
+        }
+
         pathInput.addEventListener('input', updateDiagram);
+        toggleHighlight.addEventListener('change', updateDiagram);
+        toggleColor.addEventListener('change', updateDiagram);
+        window.addEventListener('resize', drawTrackingLinesSVG);
+        updateDiagram();
     </script>
 </body>
 </html>
