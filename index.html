@@ -82,7 +82,8 @@
                 linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 20px 20px;*/
             min-height: 500px;
-            overflow-x: auto;
+            overflow-x: hidden;
+            overflow-y: hidden;
         }
 
         #svgOverlay {
@@ -113,13 +114,15 @@
             letter-spacing: 1px;
             white-space: nowrap;
             font-family: monospace;
-            /* JSで動的に幅（width）を上書きします */
         }
 
         .separator {
-            width: 30px;
+            width: 70px; /* 変換回数表示のために幅を少し広げました */
             color: #888888;
             text-align: center;
+            font-size: 12px;
+            font-family: monospace;
+            white-space: nowrap;
         }
 
         .dots-container {
@@ -184,7 +187,7 @@ cabab</textarea>
             
             <div class="controls">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="toggleHighlight" checked> 変換箇所の四角（ハイライト）を表示
+                    <input type="checkbox" id="toggleHighlight" checked> 変換箇所の枠（ハイライト）を表示
                 </label>
                 <label class="checkbox-label">
                     <input type="checkbox" id="toggleColor" checked> グラフ全体に色を付ける
@@ -193,7 +196,7 @@ cabab</textarea>
                     <input type="checkbox" id="toggleDots" checked> グラフの頂点（ドット）を表示
                 </label>
             </div>
-                <div class="controls" style="margin-top: -7px;">
+            <div class="controls" style="margin-top: -7px;">
                 <h4 style="margin: 0 0 8px 0; font-weight: normal; color: #555;">[ Load Sample ]</h4>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
                     <button class="sample-btn" data-index="0">ハロウィーン → ウーロンハイ</button>
@@ -202,8 +205,6 @@ cabab</textarea>
                 </div>
             </div>
         </div>
-
-
 
         <div class="visual-container">
             <svg id="svgOverlay"></svg>
@@ -226,7 +227,6 @@ cabab</textarea>
             '#8e44ad', '#d35400', '#16a085', '#2c3e50'
         ];
 
-        // ユーザー様作成の完全クリーンな対応関係マップ生成ロジック
         function findExactCharacterLinks(s1, s2) {
             let u1 = s1.split('');
             let u2 = s2.split('');
@@ -237,7 +237,6 @@ cabab</textarea>
             let coreWidthFrom = 0;
             let coreWidthTo = 0;
 
-            // 1. 正方向ルール (2文字 -> 3文字) の特定
             for (let i = 0; i <= u1.length - 2; i++) {
                 let x = u1[i], y = u1[i+1];
                 if (u1.slice(0, i).concat([y, x, x]).concat(u1.slice(i + 2)).join('') === s2) {
@@ -248,7 +247,6 @@ cabab</textarea>
                 }
             }
 
-            // 2. 逆方向ルール (3文字 -> 2文字) の特定
             if (foundIdx === -1) {
                 for (let i = 0; i <= u1.length - 3; i++) {
                     let first = u1[i], second = u1[i+1], third = u1[i+2];
@@ -256,7 +254,6 @@ cabab</textarea>
                         if (u1.slice(0, i).concat([second, first]).concat(u1.slice(i + 3)).join('') === s2) {
                             foundIdx = i; ruleType = "yxx->xy"; break;
                         }
-
                     }
                     if (first === second && second === third) {
                         if (u1.slice(0, i).concat([first, first]).concat(u1.slice(i + 3)).join('') === s2) {
@@ -310,19 +307,14 @@ cabab</textarea>
             return { links, foundIdx, coreWidthFrom, coreWidthTo };
         }
 
-        // 🛠️ 同一ディレクトリの sample.txt を読み込んでパースする
         async function loadSamplePath(sampleIndex) {
             try {
-                // sample.txt を取得
                 const response = await fetch('sample.txt');
                 if (!response.ok) throw new Error('ファイルの読み込みに失敗しました');
                 const rawText = await response.text();
-
-                // 空白行（2連続の改行など）でテキストを各サンプルブロックに分割
                 const samples = rawText.split(/\n\s*\n/).map(block => block.trim()).filter(block => block.length > 0);
 
                 if (samples[sampleIndex]) {
-                    // テキストエリアに値をセットして、グラフを再描画
                     pathInput.value = samples[sampleIndex];
                     updateDiagram();
                 } else {
@@ -334,7 +326,6 @@ cabab</textarea>
             }
         }
 
-        // ボタンのクリックイベントを登録
         document.querySelectorAll('.sample-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
@@ -352,12 +343,10 @@ cabab</textarea>
 
             const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
             
-            // 🛠️ 改善1：最大文字数（半角幅換算）を取得して動的にラベル幅を決定する
             let maxCharLength = 0;
             lines.forEach(line => {
                 if (line.length > maxCharLength) maxCharLength = line.length;
             });
-            // 1文字あたり約10.5px＋余裕を持たせるためのベース幅
             const dynamicLabelWidth = Math.max(100, maxCharLength * 17 + 20);
 
             const firstLine = lines[0];
@@ -373,19 +362,24 @@ cabab</textarea>
 
             diagramFlow.innerHTML = ''; 
 
-            lines.forEach((line) => {
+            lines.forEach((line, index) => {
                 const row = document.createElement('div');
                 row.className = 'step-row';
 
                 const label = document.createElement('div');
                 label.className = 'string-label';
-                label.style.width = `${dynamicLabelWidth}px`; // 動的幅を適用
+                label.style.width = `${dynamicLabelWidth}px`; 
                 label.textContent = line;
                 row.appendChild(label);
 
                 const sep = document.createElement('div');
                 sep.className = 'separator';
-                sep.textContent = '–';
+                // 🛠️ 改善2: 最後の行以外に、0-indexedのステップ番号を付与
+                if (index < lines.length - 1) {
+                    sep.textContent = `– [${index}] ->`;
+                } else {
+                    sep.textContent = ' '; // 最終行の辻褄合わせ用
+                }
                 row.appendChild(sep);
 
                 const dotsContainer = document.createElement('div');
@@ -397,7 +391,6 @@ cabab</textarea>
 
                     const dot = document.createElement('div');
                     dot.className = 'dot';
-                    // 🛠️ 改善3：モノクロトグルがオフならすべて同一のグレー、オンなら固有色
                     dot.style.backgroundColor = toggleColor.checked ? (charColorMap[char] || '#888888') : '#555555';
                     dot.style.opacity = toggleDots.checked ? '1' : '0';
 
@@ -450,34 +443,61 @@ cabab</textarea>
                 const currDots = layers[l];
                 const nextDots = layers[l+1];
 
-                // 🛠️ 改善2：薄紫のハイライトボックスを描画する
+                // 🛠️ 改善1: 2⇔3の段差を巻き込まないように、角の取れた6角形(polygon)で囲む
                 if (toggleHighlight.checked && result.foundIdx !== -1) {
                     const startIdx = result.foundIdx;
                     const endIdxFrom = startIdx + result.coreWidthFrom - 1;
                     const endIdxTo = startIdx + result.coreWidthTo - 1;
 
-                    // 変化に関わるノードの座標からバウンディングボックスを算出
+                    // 上下のノード配列から、囲みたい端っこのドットを取得
                     const pTopLeft = currDots[startIdx];
                     const pTopRight = currDots[endIdxFrom];
                     const pBotLeft = nextDots[startIdx];
                     const pBotRight = nextDots[endIdxTo];
 
                     if (pTopLeft && pTopRight && pBotLeft && pBotRight) {
-                        const minX = Math.min(pTopLeft.x, pBotLeft.x) - 14;
-                        const maxX = Math.max(pTopRight.x, pBotRight.x) + 14;
-                        const minY = pTopLeft.y - 14;
-                        const maxY = pBotLeft.y + 14;
+                        const offset = 10; // ドットを囲うマージン値
+                        
+                        // 6つの頂点の座標を定義して、歪んだ長方形（6角形）を形成する
+                        let points = [];
+                        
+                        if (result.coreWidthFrom === 2 && result.coreWidthTo === 3) {
+                            // 【2文字 -> 3文字の時 (右下が飛び出る)】
+                            points = [
+                                `${pTopLeft.x - offset},${pTopLeft.y - offset}`,                   // 左上
+                                `${pTopRight.x + offset},${pTopRight.y - offset}`,                 // 右上
+                                `${Math.max(pBotRight.x, pTopRight.x) + offset},${(pBotRight.y + pTopRight.y)/2}`,        // 中間（右の段差）
+                                `${pBotRight.x + offset},${pBotRight.y + offset}`,                 // 右下
+                                `${pBotLeft.x - offset},${pBotLeft.y + offset}`,                   // 左下
+                                `${Math.min(pBotLeft.x, pTopLeft.x) - offset},${(pTopLeft.y + pBotLeft.y)/2}`                    // 中間（左）
+                            ];
+                        } else if (result.coreWidthFrom === 3 && result.coreWidthTo === 2) {
+                            // 【3文字 -> 2文字の時 (右上が飛び出る)】
+                            points = [
+                                `${pTopLeft.x - offset},${pTopLeft.y - offset}`,                   // 左上
+                                `${pTopRight.x + offset},${pTopRight.y - offset}`,                 // 右上
+                                `${Math.max(pBotRight.x, pTopRight.x) + offset},${(pTopRight.y + pBotRight.y)/2}`,        // 中間（右の段差）
+                                `${pBotRight.x + offset},${pBotRight.y + offset}`,                 // 右下
+                                `${pBotLeft.x - offset},${pBotLeft.y + offset}`,                   // 左下
+                                `${Math.min(pBotLeft.x, pTopLeft.x) - offset},${(pTopLeft.y + pBotLeft.y)/2}`                    // 中間（左）
+                            ];
+                        } else {
+                            // 文字数が変わらない通常用（念のため）
+                            points = [
+                                `${pTopLeft.x - offset},${pTopLeft.y - offset}`,
+                                `${pTopRight.x + offset},${pTopRight.y - offset}`,
+                                `${pBotRight.x + offset},${pBotRight.y + offset}`,
+                                `${pBotLeft.x - offset},${pBotLeft.y + offset}`
+                            ];
+                        }
 
-                        const rectEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                        rectEl.setAttribute('x', minX);
-                        rectEl.setAttribute('y', minY);
-                        rectEl.setAttribute('width', maxX - minX);
-                        rectEl.setAttribute('height', maxY - minY);
-                        rectEl.setAttribute('fill', 'rgba(142, 68, 173, 0.00)'); // 薄紫の塗り
-                        rectEl.setAttribute('stroke', 'rgba(211, 208, 242, 1)'); // 薄紫の枠線
-                        rectEl.setAttribute('stroke-width', '1.5');
-                        rectEl.setAttribute('rx', '4'); // 角を少し丸める
-                        svgOverlay.appendChild(rectEl);
+                        const polyEl = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                        polyEl.setAttribute('points', points.join(' '));
+                        polyEl.setAttribute('fill', 'rgba(142, 68, 173, 0.0)'); // 色なしで
+                        polyEl.setAttribute('stroke', 'rgba(180, 170, 230, 1)'); // 薄紫
+                        polyEl.setAttribute('stroke-width', '1.5');
+                        polyEl.setAttribute('stroke-linejoin', 'round'); // 角を少し丸めて柔らかく
+                        svgOverlay.appendChild(polyEl);
                     }
                 }
 
@@ -496,7 +516,6 @@ cabab</textarea>
                         lineEl.setAttribute('x2', p2.x);
                         lineEl.setAttribute('y2', p2.y);
                         
-                        // 🛠️ 改善3：カラートグルに連動
                         lineEl.setAttribute('stroke', toggleColor.checked ? p1.color : '#555555');
                         lineEl.setAttribute('stroke-width', '2');
                         
