@@ -13,7 +13,7 @@
         }
         
         body {
-            font-family: 'Courier New', Courier, monospace, sans-serif;
+            font-family: 'Courier New', Courier, monospace, sans-serif, 'Noto Sans JP';
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -151,6 +151,22 @@
             color: #888888;
             margin-left: 20px;
         }
+
+        .sample-btn {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 6px 10px;
+            font-family: inherit;
+            font-size: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .sample-btn:hover {
+            background: #f0f0f0;
+        }
     </style>
 </head>
 <body>
@@ -173,8 +189,21 @@ cabab</textarea>
                 <label class="checkbox-label">
                     <input type="checkbox" id="toggleColor" checked> グラフ全体に色を付ける
                 </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="toggleDots" checked> グラフの頂点（ドット）を表示
+                </label>
+            </div>
+                <div class="controls" style="margin-top: -7px;">
+                <h4 style="margin: 0 0 8px 0; font-weight: normal; color: #555;">[ Load Sample ]</h4>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <button class="sample-btn" data-index="0">ハロウィーン → ウーロンハイ</button>
+                    <button class="sample-btn" data-index="1">12345 → 54321</button>
+                    <button class="sample-btn" data-index="2">AAAAAB → BBBBBA</button>
+                </div>
             </div>
         </div>
+
+
 
         <div class="visual-container">
             <svg id="svgOverlay"></svg>
@@ -190,6 +219,7 @@ cabab</textarea>
         const svgOverlay = document.getElementById('svgOverlay');
         const toggleHighlight = document.getElementById('toggleHighlight');
         const toggleColor = document.getElementById('toggleColor');
+        const toggleDots = document.getElementById('toggleDots');
 
         const colorPalette = [
             '#a62c1d', '#3b5fa6', '#f7d354', '#2d8a4e', 
@@ -280,6 +310,38 @@ cabab</textarea>
             return { links, foundIdx, coreWidthFrom, coreWidthTo };
         }
 
+        // 🛠️ 同一ディレクトリの sample.txt を読み込んでパースする
+        async function loadSamplePath(sampleIndex) {
+            try {
+                // sample.txt を取得
+                const response = await fetch('sample.txt');
+                if (!response.ok) throw new Error('ファイルの読み込みに失敗しました');
+                const rawText = await response.text();
+
+                // 空白行（2連続の改行など）でテキストを各サンプルブロックに分割
+                const samples = rawText.split(/\n\s*\n/).map(block => block.trim()).filter(block => block.length > 0);
+
+                if (samples[sampleIndex]) {
+                    // テキストエリアに値をセットして、グラフを再描画
+                    pathInput.value = samples[sampleIndex];
+                    updateDiagram();
+                } else {
+                    alert('指定されたサンプルが見つかりません。');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('sample.txt の読み込みエラー。同じディレクトリにファイルがあるか確認してください。');
+            }
+        }
+
+        // ボタンのクリックイベントを登録
+        document.querySelectorAll('.sample-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+                loadSamplePath(idx);
+            });
+        });
+
         function updateDiagram() {
             const text = pathInput.value.trim();
             if (!text) {
@@ -337,6 +399,7 @@ cabab</textarea>
                     dot.className = 'dot';
                     // 🛠️ 改善3：モノクロトグルがオフならすべて同一のグレー、オンなら固有色
                     dot.style.backgroundColor = toggleColor.checked ? (charColorMap[char] || '#888888') : '#555555';
+                    dot.style.opacity = toggleDots.checked ? '1' : '0';
 
                     wrapper.appendChild(dot);
                     dotsContainer.appendChild(wrapper);
@@ -446,6 +509,7 @@ cabab</textarea>
         pathInput.addEventListener('input', updateDiagram);
         toggleHighlight.addEventListener('change', updateDiagram);
         toggleColor.addEventListener('change', updateDiagram);
+        toggleDots.addEventListener('change', updateDiagram);
         window.addEventListener('resize', drawTrackingLinesSVG);
         updateDiagram();
     </script>
