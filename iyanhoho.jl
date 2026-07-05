@@ -180,4 +180,4 @@ function bidirectional_bfs_prove(start_str::String, target_str::String; allow_sa
 end
 
 # 実行
-bidirectional_bfs_prove("ABCD", "DCBA", allow_same_char=true, max_depth=30, max_length=16)
+bidirectional_bfs_prove("ハロウイーン", "ウーロンハイ", allow_same_char=true, max_depth=30, max_length=16)
