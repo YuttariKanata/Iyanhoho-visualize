@@ -374,12 +374,9 @@ cabab</textarea>
 
                 const sep = document.createElement('div');
                 sep.className = 'separator';
-                // 🛠️ 改善2: 最後の行以外に、0-indexedのステップ番号を付与
-                if (index < lines.length) {
-                    sep.textContent = `– [${index}] ->`;
-                } else {
-                    sep.textContent = ' '; // 最終行の辻褄合わせ用
-                }
+                // 🛠️ 改善2: 0-indexedのステップ番号を付与
+                sep.textContent = `- [${index}] ->`;
+
                 row.appendChild(sep);
 
                 const dotsContainer = document.createElement('div');
