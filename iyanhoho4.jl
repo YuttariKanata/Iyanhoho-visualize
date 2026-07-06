@@ -334,8 +334,8 @@ function bidirectional_bfs_prove(start_str::String, target_str::String; allow_sa
         total_explored = length(forward_visited) + length(backward_visited)
         println("No solution was found.")
         println("Total number of states explored :", total_explored)
-        println(keys(forward_visited).|>word_to_str)
-        println(keys(backward_visited).|>word_to_str)
+        #println(keys(forward_visited).|>word_to_str)
+        #println(keys(backward_visited).|>word_to_str)
         return found
     end
 
@@ -360,7 +360,7 @@ function bidirectional_bfs_prove(start_str::String, target_str::String; allow_sa
     end
 
     println("A route has been found.")
-    println("Number of moves :", length(f_path)+length(b_path)-1)
+    println("Number of moves : ", length(f_path)+length(b_path)-1)
     println()
     
     for w in f_path
